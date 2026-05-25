@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SI-PENILIK KESETARAAN | Disdik Sumedang</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+
+    <style>
+        @media print {
+            header, footer, .no-print, button, input, select, .role-selector-box, .tab-navigation-bar, .filter-lembaga-bar, #modalPassword {
+                display: none !important;
+            }
+            @page {
+                size: auto;
+                margin: 10mm 12mm 10mm 12mm;
+            }
+            body { 
+                background-color: #fff; 
+                color: #000; 
+                padding: 0; 
+                margin: 0;
+                font-size: 11px;
+            }
+            .printable-card {
+                display: none !important;
+            }
+            .printable-card.printing-active {
+                display: block !important;
+                border: 1px solid #000 !important;
+                padding: 15px !important;
+                width: 100% !important;
+                position: relative;
+                box-shadow: none !important;
+                background: #fff !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .print-header-badge {
+                border: 1px solid #000 !important;
+                color: #000 !important;
+                background: none !important;
+            }
+            .kop-surat-sekolah {
+                display: block !important;
+                margin-bottom: 10px !important;
+            }
+            input[type="text"], select {
+                border: none !important;
+                background: transparent !important;
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                padding: 0 !important;
+            }
+            .print-label-penilik {
+                display: block !important;
+            }
+            .instrumen-row {
+                padding: 6px 10px !important;
+                margin-bottom: 4px !important;
+                background: transparent !important;
+                border-bottom: 1px dashed #ccc !important;
+            }
+            .identity-box {
+                background: transparent !important;
+                border: 1px solid #000 !important;
+                padding: 10px !important;
+                margin-bottom: 12px !important;
+            }
+            .ttd-section {
+                margin-top: 15px !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 flex flex-col min-h-screen">
+
+    <header class="bg-gradient-to-r from-teal-800 to-cyan-700 text-white shadow-md sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center justify-between py-4 gap-4">
+                
+                <div class="flex items-center space-x-3.5">
+                    <div class="bg-white p-1.5 rounded-xl shadow-xs flex-shrink-0 flex items-center justify-center">
+                        <img src="logo.png" alt="Logo Kabupaten Sumedang" class="h-11 w-auto object-contain">
+                    </div>
+                    <div>
+                        <h1 class="text-base font-bold tracking-tight">SI-PENILIK DISDIK KABUPATEN SUMEDANG</h1>
+                        <p class="text-xs text-teal-200">Sistem Akuntabilitas Tugas Pokok Penilik PNF Kesetaraan</p>
+                    </div>
+                </div>
+
+                <div class="bg-teal-900/50 p-1.5 rounded-xl flex items-center space-x-2 border border-teal-600/30 role-selector-box">
+                    <span class="text-xs font-semibold px-1 text-teal-200">Akses Sistem:</span>
+                    <select id="userRoleSelect" onchange="handleRoleChange(this.value)" class="bg-slate-900 text-white font-bold text-xs rounded-lg p-1.5 focus:outline-none cursor-pointer">
+                        <option value="kepala_sekolah">🟢 KEPALA SATUAN (Uploader)</option>
+                        <option value="penilik">🔵 PENILIK (Pemeriksa/Validator)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <nav class="flex flex-wrap gap-1 pb-2 tab-navigation-bar">
+                <button onclick="switchTab('pemantauan')" id="btn-pemantauan" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-teal-900 text-white transition-all">
+                    <i class="fa-solid fa-eye mr-1"></i> 1. PEMANTAUAN (Pengelolaan & Pembelajaran)
+                </button>
+                <button onclick="switchTab('penilaian')" id="btn-penilaian" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-teal-100 hover:bg-teal-700 transition-all">
+                    <i class="fa-solid fa-file-invoice mr-1"></i> 2. PENILAIAN (Hasil Program & Dampak PNF)
+                </button>
+                <button onclick="switchTab('pembinaan')" id="btn-pembinaan" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-teal-100 hover:bg-teal-700 transition-all">
+                    <i class="fa-solid fa-users-gear mr-1"></i> 3. PEMBINAAN (Pendidik & Lembaga Kesetaraan)
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <div class="mb-4 p-3 bg-teal-50 border-l-4 border-teal-600 rounded-r-xl text-xs text-teal-900 no-print flex justify-between items-center shadow-xs">
+            <p><i class="fa-solid fa-user-check text-teal-600 mr-2"></i> Pilih jenis lembaga dan pilih sekolah pada dropdown di bawah untuk menampilkan instrumen secara otomatis.</p>
+            <span id="roleBadgeDisplay" class="bg-teal-700 text-white px-2 py-0.5 rounded font-bold uppercase text-[10px]">Akses: Kepala Satuan</span>
+        </div>
+
+        <div class="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4 border-b border-slate-200 pb-3 mb-4 no-print filter-lembaga-bar">
+            <div class="flex space-x-2">
+                <button onclick="switchSubLembaga('skb')" id="sub-skb" class="sub-tab px-4 py-2 text-xs font-bold border-b-2 border-teal-600 text-teal-700">SPNF SKB NEGERI</button>
+                <button onclick="switchSubLembaga('pkbm')" id="sub-pkbm" class="sub-tab px-4 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800">PKBM BINAAN</button>
+            </div>
+            
+            <div id="wrapperDropdownPkbm" class="hidden flex items-center space-x-2 bg-teal-50 p-1.5 rounded-xl border border-teal-200 w-full md:w-auto">
+                <span class="text-xs font-bold text-teal-800 shrink-0 pl-1"><i class="fa-solid fa-school text-teal-600"></i> Pilih Satuan PKBM:</span>
+                <select id="selectSekolahPkbm" onchange="handlePkbmDropdownChange(this.value)" class="bg-white border border-teal-300 text-slate-800 font-bold text-xs rounded-lg p-1.5 focus:outline-none cursor-pointer w-full md:w-64 shadow-2xs">
+                </select>
+            </div>
+        </div>
+
+        <div id="lembagaContainer" class="space-y-6">
+        </div>
+
+    </main>
+
+    <div id="modalPassword" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center hidden z-[100] no-print p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+            <div class="text-center space-y-2">
+                <div class="mx-auto w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xl shadow-2xs">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-sm font-bold text-slate-900">Autentikasi Akses Penilik</h3>
+                <p class="text-xs text-slate-400">Masukkan kata sandi admin penilik dinas pendidikan untuk mengaktifkan fitur pemeriksaan berkas.</p>
+            </div>
+            <div>
+                <input type="password" id="inputAdminPassword" placeholder="Masukkan Paspor Penilik..." class="w-full text-center p-2.5 text-sm font-mono border border-slate-300 rounded-xl focus:outline-none focus:border-blue-600 bg-slate-50">
+                <p id="errorPasswordMsg" class="text-[11px] text-red-600 font-bold text-center mt-1 hidden">❌ Kata sandi salah atau tidak terdaftar!</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                <button onclick="cancelRoleValidation()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">Batal</button>
+                <button onclick="validatePenilikPassword()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs transition-all">Verifikasi</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-950 text-slate-500 text-center text-xs py-4 border-t border-slate-900 no-print">
+        <p>&copy; 2026 Dinas Pendidikan Kabupaten Sumedang. Hak Akses Manajemen Pengawasan PNF Kesetaraan.</p>
+    </footer>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1234567890-YOUR-API-KEY-HERE",
+            authDomain: "si-penilik-sumedang.firebaseapp.com",
+            projectId: "si-penilik-sumedang",
+            storageBucket: "si-penilik-sumedang.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        let currentTab = "pemantauan";
+        let currentSubLembaga = "skb"; 
+        let selectedSelectedPkbmId = ""; 
+        let currentRole = "kepala_sekolah";
+        const ADMIN_PASSWORD_KEY = "adminpenilik2026"; 
+
+        const dataSekolah = {
+            skb: [{ idLembaga: "skb_satuan_1", npsn: "69941716", namaSatuan: "SPNF SKB Dinas Pendidikan Kabupaten Sumedang", alamat: "Jl. Margamukti No.56, Licin, Kec. Cimalaka, Kab. Sumedang", defaultKasek: "Drs. H. Ahmad Fauzi, M.Pd." }],
+            pkbm: [
+                { idLembaga: "pkbm_satuan_1", npsn: "P2963449", namaSatuan: "PKBM MEKAR BUANA", alamat: "Jl. Angkrek No.98 Kel.Kotakaler, Kec. Sumedang Utara", defaultKasek: "EGI ZAENAL MUTAQIEN" },
+                { idLembaga: "pkbm_satuan_2", npsn: "P9934726", namaSatuan: "PKBM PASCA MARGA", alamat: "Jl. KLK No.72 Rt2/Rw2,Desa.Rancamulya, Kec. Sumedang Utara", defaultKasek: "DEDEH KURAESIN" },
+                { idLembaga: "pkbm_satuan_3", npsn: "P9952581", namaSatuan: "PKBM MULYASARI SEJATI", alamat: "Dsn. Kadapugur Rt1/Rw6 Desa Mulyasari, Kec. Sumedang Utara", defaultKasek: "GRACY MEILANITA" },
+                { idLembaga: "pkbm_satuan_4", npsn: "P9999789", namaSatuan: "PKBM AL-AMANAH", alamat: "Jl. Angkrek Gg. Karyawan II Kel. Situ, Kec. Sumedang Utara", defaultKasek: "DEDI MUHAMMAD ISHAK" },
+                { idLembaga: "pkbm_satuan_5", npsn: "P9984783", namaSatuan: "PKBM MENTARI MADANI", alamat: "Prm Jatihurip Blok 9 Desa Jatihurip, Kec. Sumedang Utara", defaultKasek: "YANA SATRIANA" },
+                { idLembaga: "pkbm_satuan_6", npsn: "P2970750", namaSatuan: "PKBM MENTARI KREATIF MANDIRI", alamat: "Jl Serma Muhtar NO 97 RT 1RW 7,Kel. Situ, Kec. Sumedang Utara", defaultKasek: "ARIF FIRMAN" },
+                { idLembaga: "pkbm_satuan_7", npsn: "P2971163", namaSatuan: "PKBM CENDIKIA PURNAMA", alamat: "Jln. 11 April No. 07 Tegalkalong Kel. Kota Kaler, Kec. Sumedang Utara", defaultKasek: "ERWIN SUHERLAN" },
+                { idLembaga: "pkbm_satuan_8", npsn: "P2963445", namaSatuan: "PKBM TARBIYATUL UMMAH", alamat: "Dsn Cijengkol Rt 1/Rw 4,Desa Cikoneng, Kec. Ganeas", defaultKasek: "NYAI SUMIATI" },
+                { idLembaga: "pkbm_satuan_9", npsn: "P9968108", namaSatuan: "PKBM CIGEMBONG", alamat: "Dsn. Cigembong RT 1/RW 3, Desa Cikondang, Kec. Ganeas", defaultKasek: "RIFIN KUSTIAN" },
+                { idLembaga: "pkbm_satuan_10", npsn: "P9984832", namaSatuan: "PKBM PELITA INSANI", alamat: "Jl Pangeran Bungsu No.01 RT1/RW4 Desa Cisarua, Kec. Cisarua", defaultKasek: "DADANG SUHENRA" },
+                { idLembaga: "pkbm_satuan_11", npsn: "P2970545", namaSatuan: "PKBM PANDAWA", alamat: "Dusun Cibolang RT2/RW3 Desa Kebon Kalapa, Kec. Cisarua", defaultKasek: "LILIS SUWANGSIH" }
+            ]
+        };
+
+        const dataPenilik = [
+            { idPenilik: "pnl_1", namaPenilik: "ADE SUGIANA, S.S", nip: "19800726 200902 1 002" },
+            { idPenilik: "pnl_2", namaPenilik: "ELANG HERYANA, M.M", nip: "19691124 199302 2 001" },
+            { idPenilik: "pnl_3", namaPenilik: "Yayan Mulyana, S.IP.", nip: "19810805 200901 1 004" },
+            { idPenilik: "pnl_4", namaPenilik: "Budi Hermawan, M.Pd.", nip: "19780216 200501 1 003" }
+        ];
+
+        const instrumenData = {
+            pemantauan: [
+                { id: "kosp", label: "Pemeriksaan Dokumen KOSP Kesetaraan & Modul Ajar Kontekstual" },
+                { id: "dapodik", label: "Validasi Sinkronisasi Dapodik Berkala & Atribut Peserta Didik Riil" },
+                { id: "bop", label: "Pemeriksaan Buku Kas Umum (BKU) Operasional Dana BOP Kesetaraan" },
+                { id: "jurnal", label: "Monitoring Jurnal Pembelajaran Tatap Muka/Tutorial/Mandiri Tutor" }
+            ],
+            penilaian: [
+                { id: "rapor", label: "Evaluasi Laporan Capaian Asesmen Sumatif Akhir (Rapor Kesetaraan)" },
+                { id: "p5", label: "Penilaian Berkas Portofolio Hasil Proyek Penguatan Profil Pelajar Pancasila" },
+                { id: "dnt", label: "Validasi Daftar Nominasi Tetap (DNT) Peserta Uji Kesetaraan Nasional" },
+                { id: "tracer", label: "Instrumen Evaluasi Dampak PNF Melalui Penelusuran Jejak Alumni (Tracer Study)" }
+            ],
+            pembinaan: [
+                { id: "atp", label: "Pendampingan Klinis Penyusunan Alur Tujuan Pembelajaran (ATP) Bersama Rumpun Tutor" },
+                { id: "sispena", label: "Pemeriksaan Dokumen Persiapan Akreditasi Satuan (Kesiapan Aplikasi Sispena BAN PDM)" },
+                { id: "diff", label: "Workshop Penerapan Pembelajaran Berdiferensiasi & Inklusif pada PNF Kesetaraan" },
+                { id: "pedagogik", label: "Pemenuhan Sertifikasi/Pelatihan Peningkatan Kompetensi Pedagogik Pengelola Satuan" }
+            ]
+        };
+
+        function initPkbmDropdownList() {
+            const dropdown = document.getElementById('selectSekolahPkbm');
+            dropdown.innerHTML = "";
+            dataSekolah.pkbm.forEach(item => {
+                dropdown.innerHTML += `<option value="${item.idLembaga}">${item.namaSatuan} (${item.npsn})</option>`;
+            });
+            if(dataSekolah.pkbm.length > 0) {
+                selectedSelectedPkbmId = dataSekolah.pkbm[0].idLembaga;
+            }
+        }
+
+        function handlePkbmDropdownChange(idLembagaTerpilih) {
+            selectedSelectedPkbmId = idLembagaTerpilih;
+            renderLembagaView();
+        }
+
+        function handleRoleChange(selectedRole) {
+            if (selectedRole === "penilik") {
+                document.getElementById('inputAdminPassword').value = "";
+                document.getElementById('errorPasswordMsg').classList.add('hidden');
+                document.getElementById('modalPassword').classList.remove('hidden');
+            } else {
+                executeRoleSwitch("kepala_sekolah");
+            }
+        }
+
+        function validatePenilikPassword() {
+            let inputPwd = document.getElementById('inputAdminPassword').value;
+            if (inputPwd === ADMIN_PASSWORD_KEY) {
+                document.getElementById('modalPassword').classList.add('hidden');
+                executeRoleSwitch("penilik");
+            } else {
+                document.getElementById('errorPasswordMsg').classList.remove('hidden');
+            }
+        }
+
+        function cancelRoleValidation() {
+            document.getElementById('modalPassword').classList.add('hidden');
+            document.getElementById('userRoleSelect').value = "kepala_sekolah";
+            executeRoleSwitch("kepala_sekolah");
+        }
+
+        function executeRoleSwitch(role) {
+            currentRole = role;
+            document.getElementById('roleBadgeDisplay').textContent = "Akses: " + role.replace('_', ' ');
+            document.getElementById('roleBadgeDisplay').className = role === 'penilik' ? 
+                "bg-blue-700 text-white px-2 py-0.5 rounded font-bold uppercase text-[10px]" : 
+                "bg-teal-700 text-white px-2 py-0.5 rounded font-bold uppercase text-[10px]";
+            renderLembagaView();
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(b => b.className = "tab-btn px-4 py-2 rounded-lg text-xs font-bold text-teal-100 hover:bg-teal-700 transition-all");
+            document.getElementById(`btn-${tabId}`).className = "tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-teal-900 text-white transition-all";
+            renderLembagaView();
+        }
+
+        function switchSubLembaga(type) {
+            currentSubLembaga = type;
+            document.querySelectorAll('.sub-tab').forEach(t => t.className = "sub-tab px-4 py-2 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800");
+            document.getElementById(`sub-${type}`).className = "sub-tab px-4 py-2 text-xs font-bold border-b-2 border-teal-600 text-teal-700";
+            
+            const wrapperDrop = document.getElementById('wrapperDropdownPkbm');
+            if(type === 'pkbm') {
+                wrapperDrop.classList.remove('hidden');
+            } else {
+                wrapperDrop.classList.add('hidden');
+            }
+            renderLembagaView();
+        }
+
+        function updatePenilikIdentity(idLembaga, selectedValue) {
+            const displayNama = document.getElementById(`print-nama-penilik-${idLembaga}`);
+            const displayNip = document.getElementById(`print-nip-penilik-${idLembaga}`);
+            
+            if (selectedValue === "") {
+                if (displayNama) displayNama.textContent = "...................................";
+                if (displayNip) displayNip.textContent = "NIP. ...................................";
+                return;
+            }
+            const penilikObj = dataPenilik.find(p => p.namaPenilik === selectedValue);
+            if (penilikObj) {
+                if (displayNama) displayNama.textContent = penilikObj.namaPenilik;
+                if (displayNip) displayNip.textContent = "NIP. " + penilikObj.nip;
+            }
+        }
+
+        function renderLembagaView() {
+            const container = document.getElementById('lembagaContainer');
+            container.innerHTML = "";
+            
+            let listLembagaAktif = [];
+
+            if(currentSubLembaga === 'skb') {
+                listLembagaAktif = dataSekolah.skb;
+            } else {
+                let foundPkbm = dataSekolah.pkbm.find(p => p.idLembaga === selectedSelectedPkbmId);
+                if(foundPkbm) {
+                    listLembagaAktif = [foundPkbm];
+                } else if(dataSekolah.pkbm.length > 0) {
+                    listLembagaAktif = [dataSekolah.pkbm[0]];
+                }
+            }
+
+            listLembagaAktif.forEach((sekolah, index) => {
+                let idLembaga = sekolah.idLembaga;
+                let npsn = sekolah.npsn;
+                let namaSekolah = sekolah.namaSatuan;
+                let alamat = sekolah.alamat;
+                let defaultKasek = sekolah.defaultKasek;
+
+                let penilikOptionsHtml = `<option value="">-- Pilih Nama Penilik --</option>`;
+                dataPenilik.forEach(pnl => {
+                    penilikOptionsHtml += `<option value="${pnl.namaPenilik}">${pnl.namaPenilik}</option>`;
+                });
+
+                let htmlCard = `
+                    <div id="card-${idLembaga}" class="printable-card bg-white p-6 rounded-2xl shadow-xs border border-slate-200 space-y-4">
+                        
+                        <div class="hidden kop-surat-sekolah text-center border-b-2 border-slate-950 pb-2 mb-2">
+                            <h2 class="text-xs font-bold uppercase tracking-wider m-0">PEMERINTAH KABUPATEN SUMEDANG</h2>
+                            <h1 class="text-sm font-black uppercase m-0">DINAS PENDIDIKAN</h1>
+                            <p class="text-[9px] text-slate-500 m-0">Alamat: ${alamat}</p>
+                            <div class="border-t border-slate-900 mt-1 pt-1 text-xs font-bold tracking-wide">
+                                LEMBAR VERIFIKASI TUGAS POKOK PENILIK - ${currentTab.toUpperCase()} TAHUN 2026
+                            </div>
+                        </div>
+
+                        <div class="identity-box p-4 bg-slate-100/70 border border-slate-200 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <p class="text-slate-400 font-medium">Nama Satuan Pendidikan:</p>
+                                <p class="font-bold text-slate-800 text-sm">${namaSekolah}</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-400 font-medium">Nomor Pokok Sekolah Nasional (NPSN):</p>
+                                <p class="font-mono font-bold text-slate-800">${npsn}</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <p class="text-slate-400 font-medium">Alamat Lembaga & Wilayah Kerja:</p>
+                                <p class="font-medium text-slate-700">${alamat}</p>
+                            </div>
+                            <div class="md:col-span-2 border-t border-slate-200/60 pt-2 mt-1">
+                                <label class="text-slate-500 font-bold block mb-1">Nama Kepala Satuan / Pengelola PNF:</label>
+                                <input type="text" id="kasek-name-${idLembaga}" onchange="saveProfileLembaga('${idLembaga}')" value="${defaultKasek}" placeholder="Ketik nama kepala sekolah..." class="bg-white border border-slate-300 rounded-lg p-2 w-full font-bold text-slate-800 shadow-2xs focus:outline-none focus:border-teal-600">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2 no-print">
+                            <span class="print-header-badge bg-slate-200 text-slate-700 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">${currentSubLembaga.toUpperCase()} • AKTIF</span>
+                            <button onclick="printSingleCard('card-${idLembaga}')" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center shadow-xs transition-all">
+                                <i class="fa-solid fa-print mr-1.5"></i> Cetak Dokumen Sekolah
+                            </button>
+                        </div>
+
+                        <div class="space-y-1">
+                `;
+
+                instrumenData[currentTab].forEach((ins) => {
+                    let docKey = `${idLembaga}_${currentTab}_${ins.id}`;
+                    htmlCard += `
+                        <div class="instrumen-row p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center text-xs gap-2">
+                            <span class="font-medium text-slate-700">${ins.label}</span>
+                            <div class="flex items-center space-x-2 w-full md:w-auto justify-end shrink-0">
+                                <a id="view-${docKey}" href="#" target="_blank" class="hidden text-blue-600 font-bold hover:underline mr-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat</a>
+                                
+                                <div class="${currentRole === 'kepala_sekolah' ? 'block' : 'hidden'} no-print">
+                                    <input type="file" id="input-${docKey}" class="hidden" onchange="uploadToStorage('${idLembaga}', '${ins.id}', '${docKey}')">
+                                    <button onclick="document.getElementById('input-${docKey}').click()" class="bg-white border text-[11px] font-bold px-2 py-1 rounded shadow-2xs hover:bg-slate-100"><i class="fa-solid fa-cloud-arrow-up text-teal-600"></i></button>
+                                </div>
+
+                                <div class="${currentRole === 'penilik' ? 'flex' : 'hidden'} items-center space-x-1 no-print">
+                                    <button onclick="updateStatus('${docKey}', 'DISETUJUI')" class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] hover:bg-emerald-700">Setuju</button>
+                                    <button onclick="updateStatus('${docKey}', 'DITOLAK')" class="bg-red-600 text-white font-bold px-2 py-0.5 rounded text-[10px] hover:bg-red-700">Tolak</button>
+                                </div>
+
+                                <span id="badge-${docKey}" class="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Belum Upload</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                htmlCard += `
+                        </div>
+                        
+                        <div class="ttd-section border-t border-slate-200 pt-4 mt-2">
+                            <div class="grid grid-cols-2 gap-4 text-center text-xs">
+                                <div class="flex flex-col items-center justify-between min-h-[120px]">
+                                    <p class="font-bold text-slate-700">Pihak I,<br>Kepala Satuan Pendidikan Kesetaraan</p>
+                                    <div class="h-12 print:h-14"></div> 
+                                    <div>
+                                        <p id="print-nama-kasek-${idLembaga}" class="font-bold text-slate-900 border-b border-slate-400 pb-0.5 min-w-[180px] text-center inline-block">${defaultKasek}</p>
+                                        <p class="text-[10px] text-slate-400 font-medium mt-0.5">Kepala Satuan</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-center justify-between min-h-[120px]">
+                                    <p class="font-bold text-slate-700">Pihak II,<br>Penilik Dinas Pendidikan Kab. Sumedang</p>
+                                    
+                                    <div class="no-print my-1">
+                                        <select id="select-penilik-${idLembaga}" onchange="updatePenilikIdentity('${idLembaga}', this.value)" class="text-center font-bold border border-slate-300 rounded-lg p-1 w-44 bg-white focus:outline-none text-xs text-slate-800">
+                                            ${penilikOptionsHtml}
+                                        </select>
+                                    </div>
+                                    <div class="h-6 print:h-14"></div> 
+                                    
+                                    <div>
+                                        <p id="print-nama-penilik-${idLembaga}" class="font-bold text-slate-900 border-b border-slate-400 pb-0.5 min-w-[180px] text-center inline-block">...................................</p>
+                                        <p id="print-nip-penilik-${idLembaga}" class="font-medium text-slate-700 font-mono mt-0.5 text-[10px]">NIP. ...................................</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+                container.innerHTML += htmlCard;
+            });
+            
+            fetchRealtimeData(listLembagaAktif);
+            loadProfileLembagaData(listLembagaAktif);
+        }
+
+        function saveProfileLembaga(idLembaga) {
+            let namaKasek = document.getElementById(`kasek-name-${idLembaga}`).value;
+            db.collection("si_penilik_profil").doc(idLembaga).set({
+                namaKepalaSekolah: namaKasek
+            }).then(() => {
+                let displayPrint = document.getElementById(`print-nama-kasek-${idLembaga}`);
+                if (displayPrint) displayPrint.textContent = namaKasek || "...................................";
+            });
+        }
+
+        function loadProfileLembagaData(listLembaga) {
+            listLembaga.forEach(sekolah => {
+                let idLembaga = sekolah.idLembaga;
+                db.collection("si_penilik_profil").doc(idLembaga).get().then(doc => {
+                    if (doc.exists) {
+                        let data = doc.data();
+                        let inputField = document.getElementById(`kasek-name-${idLembaga}`);
+                        let displayPrint = document.getElementById(`print-nama-kasek-${idLembaga}`);
+                        if (inputField) inputField.value = data.namaKepalaSekolah || sekolah.defaultKasek;
+                        if (displayPrint) displayPrint.textContent = data.namaKepalaSekolah || sekolah.defaultKasek;
+                    }
+                });
+            });
+        }
+
+        // PERBAIKAN: variable currentSubSubLembaga dihapus untuk mencegah error transpilasi
+        function uploadToStorage(idLembaga, insId, docKey) {
+            let fileInput = document.getElementById(`input-${docKey}`);
+            let file = fileInput.files[0];
+            if(!file) return;
+
+            let badge = document.getElementById(`badge-${docKey}`);
+            badge.textContent = "Proses... ⏳";
+            badge.className = "bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded";
+
+            let storageRef = storage.ref(`si_penilik/${currentSubLembaga}/${idLembaga}/${file.name}`);
+            storageRef.put(file).then(snapshot => {
+                snapshot.ref.getDownloadURL().then(downloadURL => {
+                    db.collection("si_penilik_data").doc(docKey).set({
+                        idLembaga: idLembaga,
+                        subLembaga: currentSubLembaga,
+                        tabType: currentTab,
+                        insId: insId,
+                        fileUrl: downloadURL,
+                        statusValidasi: "MENUNGGU PERIKSA"
+                    }).then(() => {
+                        badge.textContent = "DIREVIU 🕒";
+                        badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded";
+                        let viewLink = document.getElementById(`view-${docKey}`);
+                        viewLink.href = downloadURL;
+                        viewLink.classList.remove('hidden');
+                    });
+                });
+            });
+        }
+
+        function updateStatus(docKey, status) {
+            db.collection("si_penilik_data").doc(docKey).update({
+                statusValidasi: status
+            }).then(() => {
+                let badge = document.getElementById(`badge-${docKey}`);
+                badge.textContent = status;
+                badge.className = status === 'DISETUJUI' ? 
+                    "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase" : 
+                    "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+            }).catch(() => {
+                alert("File belum diunggah oleh sekolah!");
+            });
+        }
+
+        function fetchRealtimeData(listLembagaAktif) {
+            if(listLembagaAktif.length === 0) return;
+            
+            listLembagaAktif.forEach(sekolah => {
+                db.collection("si_penilik_data")
+                .where("idLembaga", "==", sekolah.idLembaga)
+                .where("tabType", "==", currentTab)
+                .get().then(snap => {
+                    snap.forEach(doc => {
+                        let data = doc.data();
+                        let docKey = doc.id;
+                        let badge = document.getElementById(`badge-${docKey}`);
+                        let viewLink = document.getElementById(`view-${docKey}`);
+                        
+                        if(badge && viewLink) {
+                            viewLink.href = data.fileUrl;
+                            viewLink.classList.remove('hidden');
+                            badge.textContent = data.statusValidasi;
+                            if(data.statusValidasi === 'DISETUJUI') badge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                            else if(data.statusValidasi === 'DITOLAK') badge.className = "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                            else badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                        }
+                    });
+                });
+            });
+        }
+
+        function printSingleCard(cardId) {
+            const card = document.getElementById(cardId);
+            if(card) {
+                card.classList.add('printing-active');
+                window.print();
+                card.classList.remove('printing-active');
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initPkbmDropdownList(); 
+            renderLembagaView();    
+        });
+    </script>
+</body>
+</html>
