@@ -400,7 +400,7 @@
                                 <a id="view-${docKey}" href="#" target="_blank" class="hidden text-blue-600 font-bold hover:underline mr-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat</a>
                                 
                                 <div class="${currentRole === 'kepala_sekolah' ? 'block' : 'hidden'} no-print">
-                                    <input type="file" id="input-${docKey}" class="hidden" onchange="uploadToStorage('${idLembaga}', '${ins.id}', '${docKey}')">
+                                    <input type="file" id="input-${docKey}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip,.rar" onchange="uploadToStorage('${idLembaga}', '${ins.id}', '${docKey}')">
                                     <button onclick="document.getElementById('input-${docKey}').click()" class="bg-white border text-[11px] font-bold px-2 py-1 rounded shadow-2xs hover:bg-slate-100"><i class="fa-solid fa-cloud-arrow-up text-teal-600"></i></button>
                                 </div>
 
@@ -482,34 +482,62 @@
 
         // PERBAIKAN: variable currentSubSubLembaga dihapus untuk mencegah error transpilasi
         function uploadToStorage(idLembaga, insId, docKey) {
-            let fileInput = document.getElementById(`input-${docKey}`);
-            let file = fileInput.files[0];
-            if(!file) return;
+    let fileInput = document.getElementById(`input-${docKey}`);
+    let file = fileInput.files[0];
+    if(!file) return;
 
-            let badge = document.getElementById(`badge-${docKey}`);
-            badge.textContent = "Proses... ⏳";
+    let badge = document.getElementById(`badge-${docKey}`);
+    
+    // Memberikan nama file unik dengan Date.now() agar tidak tertimpa jika nama file sama
+    let uniqueFileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+    let storageRef = storage.ref(`si_penilik/${currentSubLembaga}/${idLembaga}/${uniqueFileName}`);
+    
+    // Mulai proses upload
+    let uploadTask = storageRef.put(file);
+
+    // Pantau proses upload untuk memberikan feedback persentase (Terasa lebih cepat & interaktif)
+    uploadTask.on('state_changed', 
+        (snapshot) => {
+            // Hitung persentase
+            let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            badge.textContent = `Proses... ${Math.round(progress)}% ⏳`;
             badge.className = "bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded";
-
-            let storageRef = storage.ref(`si_penilik/${currentSubLembaga}/${idLembaga}/${file.name}`);
-            storageRef.put(file).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(downloadURL => {
-                    db.collection("si_penilik_data").doc(docKey).set({
-                        idLembaga: idLembaga,
-                        subLembaga: currentSubLembaga,
-                        tabType: currentTab,
-                        insId: insId,
-                        fileUrl: downloadURL,
-                        statusValidasi: "MENUNGGU PERIKSA"
-                    }).then(() => {
-                        badge.textContent = "DIREVIU 🕒";
-                        badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded";
-                        let viewLink = document.getElementById(`view-${docKey}`);
-                        viewLink.href = downloadURL;
-                        viewLink.classList.remove('hidden');
-                    });
+        }, 
+        (error) => {
+            // Jika terjadi error saat upload
+            console.error("Upload Error:", error);
+            badge.textContent = "GAGAL UPLOAD ❌";
+            badge.className = "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded";
+            alert("Terjadi kesalahan saat mengunggah file. Pastikan koneksi internet stabil.");
+        }, 
+        () => {
+            // Upload berhasil, dapatkan URL dan simpan ke Firestore
+            uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
+                db.collection("si_penilik_data").doc(docKey).set({
+                    idLembaga: idLembaga,
+                    subLembaga: currentSubLembaga,
+                    tabType: currentTab,
+                    insId: insId,
+                    fileUrl: downloadURL,
+                    namaFile: file.name, // Menyimpan informasi nama file asli
+                    statusValidasi: "MENUNGGU PERIKSA",
+                    diunggahPada: firebase.firestore.FieldValue.serverTimestamp() // Menyimpan waktu upload
+                }).then(() => {
+                    badge.textContent = "DIREVIU 🕒";
+                    badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded";
+                    
+                    // Tampilkan link "Lihat"
+                    let viewLink = document.getElementById(`view-${docKey}`);
+                    viewLink.href = downloadURL;
+                    viewLink.classList.remove('hidden');
+                    
+                    // Reset input file agar bisa upload ulang file yang sama jika diperlukan
+                    fileInput.value = ""; 
                 });
             });
         }
+    );
+}
 
         function updateStatus(docKey, status) {
             db.collection("si_penilik_data").doc(docKey).update({
