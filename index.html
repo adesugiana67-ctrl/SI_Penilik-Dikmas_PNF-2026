@@ -6,10 +6,6 @@
     <title>SI-PENILIK KESETARAAN | Disdik Sumedang</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
     <style>
         @media print {
@@ -92,7 +88,7 @@
                     </div>
                     <div>
                         <h1 class="text-base font-bold tracking-tight">SI-PENILIK DISDIK KABUPATEN SUMEDANG</h1>
-                        <p class="text-xs text-teal-200">Sistem Akuntabilitas Tugas Pokok Penilik PNF Kesetaraan</p>
+                        <p class="text-xs text-teal-200">Sistem Akuntabilitas Tugas Pokok Penilik PNF Kesetaraan (Multi-Format)</p>
                     </div>
                 </div>
 
@@ -121,9 +117,14 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <div class="mb-4 p-3 bg-teal-50 border-l-4 border-teal-600 rounded-r-xl text-xs text-teal-900 no-print flex justify-between items-center shadow-xs">
-            <p><i class="fa-solid fa-user-check text-teal-600 mr-2"></i> Pilih jenis lembaga dan pilih sekolah pada dropdown di bawah untuk menampilkan instrumen secara otomatis.</p>
-            <span id="roleBadgeDisplay" class="bg-teal-700 text-white px-2 py-0.5 rounded font-bold uppercase text-[10px]">Akses: Kepala Satuan</span>
+        <div class="mb-4 p-3 bg-teal-50 border-l-4 border-teal-600 rounded-r-xl text-xs text-teal-900 no-print flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-xs">
+            <p><i class="fa-solid fa-folder-open text-teal-600 mr-2"></i> Sistem mendukung semua format berkas (PDF, Word, Excel, Gambar, dll) secara offline.</p>
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end shrink-0">
+                <button onclick="kosongkanSemuaBerkas()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-lg text-[11px] flex items-center shadow-2xs transition-all cursor-pointer">
+                    <i class="fa-solid fa-trash-can mr-1.5"></i> Kosongkan Berkas
+                </button>
+                <span id="roleBadgeDisplay" class="bg-teal-700 text-white px-2 py-0.5 rounded font-bold uppercase text-[10px]">Akses: Kepala Satuan</span>
+            </div>
         </div>
 
         <div class="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4 border-b border-slate-200 pb-3 mb-4 no-print filter-lembaga-bar">
@@ -165,23 +166,10 @@
     </div>
 
     <footer class="bg-slate-950 text-slate-500 text-center text-xs py-4 border-t border-slate-900 no-print">
-        <p>&copy; 2026 Dinas Pendidikan Kabupaten Sumedang. Hak Akses Manajemen Pengawasan PNF Kesetaraan.</p>
+        <p>&copy; 2026 Dinas Pendidikan Kabupaten Sumedang. Mode Offline LocalStorage Sandbox.</p>
     </footer>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA1234567890-YOUR-API-KEY-HERE",
-            authDomain: "si-penilik-sumedang.firebaseapp.com",
-            projectId: "si-penilik-sumedang",
-            storageBucket: "si-penilik-sumedang.appspot.com",
-            messagingSenderId: "1234567890",
-            appId: "1:1234567890:web:abcdef123456"
-        };
-        
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const storage = firebase.storage();
-
         let currentTab = "pemantauan";
         let currentSubLembaga = "skb"; 
         let selectedSelectedPkbmId = ""; 
@@ -395,13 +383,13 @@
                     let docKey = `${idLembaga}_${currentTab}_${ins.id}`;
                     htmlCard += `
                         <div class="instrumen-row p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center text-xs gap-2">
-                            <span class="font-medium text-slate-700">${ins.label}</span>
+                            <span class="font-medium text-slate-700 md:max-w-md">${ins.label}</span>
                             <div class="flex items-center space-x-2 w-full md:w-auto justify-end shrink-0">
-                                <a id="view-${docKey}" href="#" target="_blank" class="hidden text-blue-600 font-bold hover:underline mr-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat</a>
+                                <a id="view-${docKey}" href="#" target="_blank" class="hidden text-blue-600 font-bold hover:underline mr-1 text-[11px] max-w-[150px] truncate"><i class="fa-solid fa-folder-open"></i> Buka Berkas</a>
                                 
                                 <div class="${currentRole === 'kepala_sekolah' ? 'block' : 'hidden'} no-print">
-                                    <input type="file" id="input-${docKey}" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.zip,.rar" onchange="uploadToStorage('${idLembaga}', '${ins.id}', '${docKey}')">
-                                    <button onclick="document.getElementById('input-${docKey}').click()" class="bg-white border text-[11px] font-bold px-2 py-1 rounded shadow-2xs hover:bg-slate-100"><i class="fa-solid fa-cloud-arrow-up text-teal-600"></i></button>
+                                    <input type="file" id="input-${docKey}" class="hidden" onchange="uploadToStorage('${idLembaga}', '${ins.id}', '${docKey}')">
+                                    <button onclick="document.getElementById('input-${docKey}').click()" class="bg-white border text-[11px] font-bold px-2 py-1 rounded shadow-2xs hover:bg-slate-100" title="Unggah berkas apapun"><i class="fa-solid fa-cloud-arrow-up text-teal-600"></i></button>
                                 </div>
 
                                 <div class="${currentRole === 'penilik' ? 'flex' : 'hidden'} items-center space-x-1 no-print">
@@ -457,127 +445,121 @@
 
         function saveProfileLembaga(idLembaga) {
             let namaKasek = document.getElementById(`kasek-name-${idLembaga}`).value;
-            db.collection("si_penilik_profil").doc(idLembaga).set({
-                namaKepalaSekolah: namaKasek
-            }).then(() => {
-                let displayPrint = document.getElementById(`print-nama-kasek-${idLembaga}`);
-                if (displayPrint) displayPrint.textContent = namaKasek || "...................................";
-            });
+            localStorage.setItem(`profile_${idLembaga}`, namaKasek);
+            let displayPrint = document.getElementById(`print-nama-kasek-${idLembaga}`);
+            if (displayPrint) displayPrint.textContent = namaKasek || "...................................";
         }
 
         function loadProfileLembagaData(listLembaga) {
             listLembaga.forEach(sekolah => {
                 let idLembaga = sekolah.idLembaga;
-                db.collection("si_penilik_profil").doc(idLembaga).get().then(doc => {
-                    if (doc.exists) {
-                        let data = doc.data();
-                        let inputField = document.getElementById(`kasek-name-${idLembaga}`);
-                        let displayPrint = document.getElementById(`print-nama-kasek-${idLembaga}`);
-                        if (inputField) inputField.value = data.namaKepalaSekolah || sekolah.defaultKasek;
-                        if (displayPrint) displayPrint.textContent = data.namaKepalaSekolah || sekolah.defaultKasek;
-                    }
-                });
+                let savedKasek = localStorage.getItem(`profile_${idLembaga}`);
+                let inputField = document.getElementById(`kasek-name-${idLembaga}`);
+                let displayPrint = document.getElementById(`print-nama-kasek-${idLembaga}`);
+                if (inputField) inputField.value = savedKasek || sekolah.defaultKasek;
+                if (displayPrint) displayPrint.textContent = savedKasek || sekolah.defaultKasek;
             });
         }
 
-        // PERBAIKAN: variable currentSubSubLembaga dihapus untuk mencegah error transpilasi
         function uploadToStorage(idLembaga, insId, docKey) {
-    let fileInput = document.getElementById(`input-${docKey}`);
-    let file = fileInput.files[0];
-    if(!file) return;
+            let fileInput = document.getElementById(`input-${docKey}`);
+            let file = fileInput.files[0];
+            if(!file) return;
 
-    let badge = document.getElementById(`badge-${docKey}`);
-    
-    // Memberikan nama file unik dengan Date.now() agar tidak tertimpa jika nama file sama
-    let uniqueFileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-    let storageRef = storage.ref(`si_penilik/${currentSubLembaga}/${idLembaga}/${uniqueFileName}`);
-    
-    // Mulai proses upload
-    let uploadTask = storageRef.put(file);
-
-    // Pantau proses upload untuk memberikan feedback persentase (Terasa lebih cepat & interaktif)
-    uploadTask.on('state_changed', 
-        (snapshot) => {
-            // Hitung persentase
-            let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            badge.textContent = `Proses... ${Math.round(progress)}% ⏳`;
+            let badge = document.getElementById(`badge-${docKey}`);
+            badge.textContent = `Proses... ⏳`;
             badge.className = "bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded";
-        }, 
-        (error) => {
-            // Jika terjadi error saat upload
-            console.error("Upload Error:", error);
-            badge.textContent = "GAGAL UPLOAD ❌";
-            badge.className = "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded";
-            alert("Terjadi kesalahan saat mengunggah file. Pastikan koneksi internet stabil.");
-        }, 
-        () => {
-            // Upload berhasil, dapatkan URL dan simpan ke Firestore
-            uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
-                db.collection("si_penilik_data").doc(docKey).set({
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let base64String = e.target.result;
+                
+                let dataToSave = {
                     idLembaga: idLembaga,
                     subLembaga: currentSubLembaga,
                     tabType: currentTab,
                     insId: insId,
-                    fileUrl: downloadURL,
-                    namaFile: file.name, // Menyimpan informasi nama file asli
+                    fileUrl: base64String,
+                    namaFile: file.name,
                     statusValidasi: "MENUNGGU PERIKSA",
-                    diunggahPada: firebase.firestore.FieldValue.serverTimestamp() // Menyimpan waktu upload
-                }).then(() => {
+                    diunggahPada: new Date().toISOString()
+                };
+
+                try {
+                    localStorage.setItem(docKey, JSON.stringify(dataToSave));
+                    
                     badge.textContent = "DIREVIU 🕒";
                     badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded";
                     
-                    // Tampilkan link "Lihat"
                     let viewLink = document.getElementById(`view-${docKey}`);
-                    viewLink.href = downloadURL;
+                    viewLink.href = base64String;
+                    viewLink.title = file.name;
                     viewLink.classList.remove('hidden');
                     
-                    // Reset input file agar bisa upload ulang file yang sama jika diperlukan
                     fileInput.value = ""; 
-                });
-            });
+                } catch (error) {
+                    console.error("Storage Limit:", error);
+                    badge.textContent = "MEMORI PENUH ❌";
+                    badge.className = "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded";
+                    alert("Gagal! Berkas terlalu besar untuk memori lokal browser. Mohon gunakan berkas dokumen/gambar berukuran kecil (< 1MB).");
+                }
+            };
+            reader.readAsDataURL(file);
         }
-    );
-}
 
         function updateStatus(docKey, status) {
-            db.collection("si_penilik_data").doc(docKey).update({
-                statusValidasi: status
-            }).then(() => {
+            let localData = localStorage.getItem(docKey);
+            if (localData) {
+                let data = JSON.parse(localData);
+                data.statusValidasi = status;
+                localStorage.setItem(docKey, JSON.stringify(data));
+                
                 let badge = document.getElementById(`badge-${docKey}`);
                 badge.textContent = status;
                 badge.className = status === 'DISETUJUI' ? 
                     "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase" : 
                     "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
-            }).catch(() => {
-                alert("File belum diunggah oleh sekolah!");
-            });
+            } else {
+                alert("File berkas belum diunggah oleh sekolah!");
+            }
         }
 
         function fetchRealtimeData(listLembagaAktif) {
             if(listLembagaAktif.length === 0) return;
             
             listLembagaAktif.forEach(sekolah => {
-                db.collection("si_penilik_data")
-                .where("idLembaga", "==", sekolah.idLembaga)
-                .where("tabType", "==", currentTab)
-                .get().then(snap => {
-                    snap.forEach(doc => {
-                        let data = doc.data();
-                        let docKey = doc.id;
-                        let badge = document.getElementById(`badge-${docKey}`);
-                        let viewLink = document.getElementById(`view-${docKey}`);
+                instrumenData[currentTab].forEach(ins => {
+                    let docKey = `${sekolah.idLembaga}_${currentTab}_${ins.id}`;
+                    let localData = localStorage.getItem(docKey);
+                    
+                    let badge = document.getElementById(`badge-${docKey}`);
+                    let viewLink = document.getElementById(`view-${docKey}`);
+                    
+                    if (localData && badge && viewLink) {
+                        let data = JSON.parse(localData);
+                        viewLink.href = data.fileUrl;
+                        viewLink.title = data.namaFile || 'Berkas';
+                        viewLink.classList.remove('hidden');
+                        badge.textContent = data.statusValidasi;
                         
-                        if(badge && viewLink) {
-                            viewLink.href = data.fileUrl;
-                            viewLink.classList.remove('hidden');
-                            badge.textContent = data.statusValidasi;
-                            if(data.statusValidasi === 'DISETUJUI') badge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
-                            else if(data.statusValidasi === 'DITOLAK') badge.className = "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
-                            else badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
-                        }
-                    });
+                        if(data.statusValidasi === 'DISETUJUI') badge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                        else if(data.statusValidasi === 'DITOLAK') badge.className = "bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                        else badge.className = "bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                    } else if (badge && viewLink) {
+                        viewLink.classList.add('hidden');
+                        badge.textContent = "Belum Upload";
+                        badge.className = "bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase";
+                    }
                 });
             });
+        }
+
+        function kosongkanSemuaBerkas() {
+            if (confirm("Apakah Anda yakin ingin menghapus semua berkas yang sudah diupload dan mereset sistem ke semula?")) {
+                localStorage.clear();
+                alert("Semua data berhasil dibersihkan!");
+                renderLembagaView();
+            }
         }
 
         function printSingleCard(cardId) {
